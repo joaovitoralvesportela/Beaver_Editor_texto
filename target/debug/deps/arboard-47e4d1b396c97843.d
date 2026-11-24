@@ -1,0 +1,10 @@
+/home/joao-vitor/Beaver/target/debug/deps/arboard-47e4d1b396c97843.d: /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/lib.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/common.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/mod.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/mod.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/x11.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/wayland.rs
+
+/home/joao-vitor/Beaver/target/debug/deps/libarboard-47e4d1b396c97843.rmeta: /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/lib.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/common.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/mod.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/mod.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/x11.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/wayland.rs
+
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/lib.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/common.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/mod.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/mod.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/x11.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/arboard-3.7.0/src/platform/linux/wayland.rs:

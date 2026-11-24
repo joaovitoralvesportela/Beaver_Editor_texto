@@ -1,0 +1,11 @@
+/home/joao-vitor/Beaver/target/debug/deps/egui_wgpu-16763ef2515477a1.d: /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/lib.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/renderer.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/setup.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/capture.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/winit.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/egui.wgsl /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/texture_copy.wgsl
+
+/home/joao-vitor/Beaver/target/debug/deps/libegui_wgpu-16763ef2515477a1.rmeta: /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/lib.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/renderer.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/setup.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/capture.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/winit.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/egui.wgsl /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/texture_copy.wgsl
+
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/lib.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/renderer.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/setup.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/capture.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/winit.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/egui.wgsl:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/egui-wgpu-0.37.0/src/texture_copy.wgsl:

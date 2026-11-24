@@ -1,0 +1,10 @@
+/home/joao-vitor/Beaver/target/debug/deps/zbus_macros-d0135ce66f5c7b00.d: /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/lib.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/error.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/iface.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/proxy.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/utils.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/../README.md
+
+/home/joao-vitor/Beaver/target/debug/deps/libzbus_macros-d0135ce66f5c7b00.so: /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/lib.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/error.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/iface.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/proxy.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/utils.rs /home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/../README.md
+
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/lib.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/error.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/iface.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/proxy.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/utils.rs:
+/home/joao-vitor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus_macros-5.19.0/src/../README.md:
