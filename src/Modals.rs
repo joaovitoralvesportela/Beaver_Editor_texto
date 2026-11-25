@@ -219,6 +219,175 @@ impl AsciiUi {
     }
 
     // -------------------------- respostas
-    
+    fn picker_outcome(
+        &mut self,
+        buf: &mut Buffer,
+        picker: Picker,
+        then: Option<Pending>,
+        outcome: PickerOutcome,
+    ) {
+        match outcome {
+            PickerOutcome::Stay => self.modal = Modal::Picker { picker, then },
+            PickerOutcome::Cancel => {}
+            PickerOutcome::Chosen(path) => self.picker_chosen(buf, picker, then, path),
+        }
+    }
+
+    // A pessoa escolheu `path` no seletor. Erros ficam dentro do seletor, para ela
+    // poder tentar outro arquivo sem recomeçar.
+
+    fn picker_chosen(
+        &mut self,
+        buf: &mut Buffer,
+        mut picker: Picker,
+        then: Option<Pending>,
+        path: PathBuf,
+    ) {
+        match picker.mode() {
+            PickerMode::Open => {
+                if let Err(message) = self.load_into(buf, path) {
+                    picker.set_error(message);
+                    self.modal = Modal::Picker { picker, then};
+                }
+            }
+            PickerMode::SaveAs => {
+                let same_file = self.file.path.as_deref() == Some(path.as_path());
+                if path.exists() && !same_file {
+                    let dlg = MsgBox::overwriter(&files::file_label(&path));
+                    self.modal = Modal::Ask {
+                        dlg,
+                        ask: Ask::Overwriter {picker, path, then},
+                    };
+                } else {
+                    match self.try_save(buf, &path) {
+                        Ok(()) => {
+                            if let Some(pending) = then {
+                                self.proceed(buf, pending);
+                            }
+                        }
+                        Err(message) => {
+                            picker.set_error(message);
+                            self.modal = Modal::Picker {picker, then};
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Um botão de uma caixa de mensagem foi adicionado
+
+    fn ask_pressed(&mut self, buf: &mut Buffer, ask: Ask, button: usize) {
+        match ask {
+            Ask::Notice => {}
+            // 0 = salvar , 1 = descartar , 2 = cancelar
+            Ask::Unsaved(pending) => match button {
+                0 => self.save(buf, Some(pending)),
+                1 => self.proceed(buf,  pending),
+                _ => {}
+            },
+            // 0 = Sim , 1 = nao
+            Ask::Overwriter {
+                mut picker,
+                path,
+                then,
+            } => {
+                if button == 0 {
+                    match self.try_save(buf, &path) {
+                        Ok(()) => {
+                            if let Some(pending) = then {
+                                self.proceed(buf, pending);
+                            }
+                        }
+                        Err(message) => {
+                            picker.set_error(message);
+                            self.modal = Modal::Picker { picker, then};
+                        }
+                    }
+                } else {
+                    self.modal = Modal::Picker {picker, then};
+                }
+            }
+        }
+    }
+
+    // ----------------------------------------- Entrada
+
+    // Teclado com um diálogo aberto 'ctrl' = ctrl/Cmd 'shift' = shift
+    pub(super) fn modal_key(
+        &mut self, 
+        buf: &mut Buffer,
+        key: Key,
+        ctrl: bool,
+        shift: bool,
+        layout: &Layout,
+    ) {
+        // O dialogo sai do estado enquanto é tratado e só volta se continuar aberto
+        match std::mem::replace(&mut self.modal, Modal::None) {
+            Modal::None => {}
+            Modal::About => {
+                if !matches!(key, Key::Enter | Key::Escape | Key::Space | Key::F1) {
+                    self.modal = Modal::About;
+                }
+            }
+            Modal::Picker {mut picker, then} => {
+                let lay = PickerLayout::new(layout.cols, layout.rows);
+                let outcome = picker.key(key, ctrl, lay.items.h);
+                self.picker_outcome(buf, picker, then, outcome);
+            }
+            Modal::Ask {mut dlg, ask} => match dlg.key(key, shift){
+                Some(button) => self.ask_pressed(buf, ask, button),
+                None => self.modal = Modal::Ask {dlg, ask},
+            },
+        }
+    }
+
+    // Texto digitado, só o seletor "Campo nome" o aceita
+    pub(super) fn modal_text(&mut self, text: &str) {
+        if let Modal::Picker {picker,..} = &mut self.modal{
+            picker.insert_text(text);
+        }
+    }
+
+    // Roda do mouse sobre o seletor: Rola a lista
+    pub(super) fn picker_wheel(&mut self, lines: isize, layout: &Layout) {
+        if let Modal::Picker { picker, ..} =  &mut self.modal {
+            let visible = PickerLayout::new(layout.cols, layout.rows).items.h;
+            picker.scroll_by(lines, visible);
+        }
+    }
+
+    // Mouse com o dialogo aberto
+    pub(super) fn modal_pointer(&mut self, buf: &mut Buffer, ptr: Pointer, layout: &Layout) {
+        match std::mem::replace(&mut self.modal, Modal::None) {
+            Modal::None => {}
+            Modal::About => {
+                let on_ok = ptr.clicked
+                    && ptr
+                        .cell
+                        .is_some_and(|(cx, cy)| layout.about_ok().contains(cx, cy));
+                if !on_ok {
+                    self.modal = Modal::About;
+                }
+            }
+            Modal::Ask { dlg, ask } => {
+                let lay = dlg.layout(layout.cols, layout.rows);
+                let pressed = match ptr.cell {
+                    Some((cx, cy)) if ptr.clicked => dlg.hit(&lay, cx, cy),
+                    _ => None,
+                };
+                match pressed {
+                    Some(button) => self.ask_pressed(buf, ask, button),
+                    None => self.modal = Modal::Ask { dlg, ask },
+                }
+            }
+            Modal::Picker { mut picker, then } => {
+                let outcome = self.picker_pointer(&mut picker, ptr, layout);
+                self.picker_outcome(buf, picker, then, outcome);
+            }
+        }
+    }
+
+    // Parei na função fn picker_pointer() na linha 388 do claude
 
 }
