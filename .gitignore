@@ -1,0 +1,9 @@
+# Pasta de build gerada pelo cargo
+/target/
+
+# Arquivos temporarios
+**/*.rs.bk
+*.rs.lock
+
+# Se houver um makefile gerado ou indesejado
+Makefile

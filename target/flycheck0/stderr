@@ -1,4 +1,0 @@
-    Checking Beaver v0.1.0 (/home/joao-vitor/Beaver)
-error: could not compile `Beaver` (bin "Beaver" test) due to 10 previous errors; 1 warning emitted
-warning: build failed, waiting for other jobs to finish...
-error: could not compile `Beaver` (bin "Beaver") due to 10 previous errors; 1 warning emitted
