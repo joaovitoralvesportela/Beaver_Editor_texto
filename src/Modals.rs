@@ -1,6 +1,9 @@
-// Fluxo de arquivos de interface: abrir, salvar, confirmar e avisar
-
-// é um submodulo da Tui.rs para poder usar o estado privado de 'AsciiUi'
+//! Fluxos de arquivo da interface: abrir, salvar, confirmar e avisar.
+//!
+//! É um submódulo de `tui` para poder usar o estado privado de `AsciiUi`. Nada aqui
+//! depende do egui além das teclas: os efeitos "de janela" (fechar) viram flags
+//! (`want_close`) que `AsciiUi::show` aplica, o que deixa os fluxos testáveis sem
+//! abrir janela.
 
 use super::{AsciiUi, Drag, Layout, Look, Pointer};
 use crate::buffer::Buffer;
@@ -12,8 +15,7 @@ use crate::scrollbar::BarHit;
 use eframe::egui::Key;
 use std::path::{Path, PathBuf};
 
-
-// o que fazer depois de resolver as alterações não salvas
+/// O que fazer depois de resolver as alterações não salvas.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Pending {
     New,
@@ -21,28 +23,28 @@ pub(super) enum Pending {
     Quit,
 }
 
-// Pergunta e avisos caixas de mensagem
+/// Perguntas e avisos (caixas de mensagem).
 pub(super) enum Ask {
-    // Salvar / Descartar / Cancelar antes de executar o Pending
+    /// "Salvar / Descartar / Cancelar" antes de executar `Pending`.
     Unsaved(Pending),
-    // Sobreescrever? quarda o seletor para voltar a ele se a resposta for 'nao'
-    Overwriter {
+    /// "Sobrescrever?": guarda o seletor para voltar a ele se a resposta for "Não".
+    Overwrite {
         picker: Picker,
         path: PathBuf,
         then: Option<Pending>,
     },
-    // Aviso com o botão ok
+    /// Só um aviso, com botão OK.
     Notice,
-
 }
 
-// Diálogo aberto no momento , no maximo um
+/// Diálogo aberto no momento (no máximo um).
 pub(super) enum Modal {
     None,
     About,
     Picker {
         picker: Picker,
-        // O que continuar depois de salvar
+        /// O que continuar depois de salvar (quando o seletor veio de "alterações
+        /// não salvas").
         then: Option<Pending>,
     },
     Ask {
@@ -51,8 +53,7 @@ pub(super) enum Modal {
     },
 }
 
-// Arquivo em edição, de onde veio e para onde vai salvar e como era no disco
-
+/// Arquivo em edição: de onde veio (e para onde vai ao salvar) e como era no disco.
 pub(super) struct FileState {
     pub path: Option<PathBuf>,
     pub format: FileFormat,
@@ -66,15 +67,15 @@ impl FileState {
         }
     }
 
-    // Nome para mostrar no titulo a mensagem
+    /// Nome para mostrar no título e nas mensagens.
     pub fn display_name(&self) -> String {
         match &self.path {
             Some(path) => files::file_label(path),
-            None => "Sem-título".to_string(),
+            None => "sem-titulo".to_string(),
         }
     }
 
-    // Pasta inicial dos seletores
+    /// Pasta inicial dos seletores.
     pub fn dir(&self) -> PathBuf {
         match &self.path {
             Some(path) => files::dir_of(path),
@@ -82,7 +83,7 @@ impl FileState {
         }
     }
 
-    // Nome sugerido 'Salvar como'
+    /// Nome sugerido em "Salvar como".
     pub fn suggested_name(&self) -> String {
         match &self.path {
             Some(path) => files::file_label(path),
@@ -92,22 +93,22 @@ impl FileState {
 }
 
 impl AsciiUi {
-    //---------------------------------------- Comandos de arquivo
+    // --------------------------------------------------------- comandos de arquivo
 
-    // Novo, Abrir, Salvar, Salvar como e Sair (Os demais são comandos da tui)
+    /// Novo, Abrir, Salvar, Salvar como e Sair (os demais comandos são da `tui`).
     pub(super) fn file_cmd(&mut self, buf: &mut Buffer, cmd: Cmd) {
         match cmd {
             Cmd::New => self.request(buf, Pending::New),
             Cmd::Open => self.request(buf, Pending::Open),
-            Cmd::Save => self.save(buf, none),
+            Cmd::Save => self.save(buf, None),
             Cmd::SaveAs => self.open_picker(PickerMode::SaveAs, None),
             Cmd::Quit => self.request(buf, Pending::Quit),
             _ => {}
         }
     }
 
-    // Executa Pending; Se houver alterações não salvas , pergunta antes
-    pub(super) fn request(&mut self, buf: &mut Buffer, pending: Pending){
+    /// Executa `pending`; se houver alterações não salvas, pergunta antes.
+    pub(super) fn request(&mut self, buf: &mut Buffer, pending: Pending) {
         if buf.is_dirty() {
             let dlg = MsgBox::unsaved(&self.file.display_name());
             self.modal = Modal::Ask {
@@ -123,8 +124,8 @@ impl AsciiUi {
         match pending {
             Pending::New => {
                 self.replace_document(buf, "", FileState::untitled());
-                self.notify("Novo Documento".to_string());
-            } 
+                self.notify("Novo documento".to_string());
+            }
             Pending::Open => self.open_picker(PickerMode::Open, None),
             Pending::Quit => self.want_close = true,
         }
@@ -143,10 +144,10 @@ impl AsciiUi {
             PickerMode::SaveAs => self.file.suggested_name(),
         };
         let picker = Picker::new(mode, self.file.dir(), &name);
-        self.modal = Modal::Picker {picker, then};
+        self.modal = Modal::Picker { picker, then };
     }
 
-    // Salvar , sem nome ainda vira "Salvar como" 'then' é o que faz depois
+    /// Salvar. Sem nome ainda, vira "Salvar como". `then` é o que fazer depois.
     fn save(&mut self, buf: &mut Buffer, then: Option<Pending>) {
         let Some(path) = self.file.path.clone() else {
             self.open_picker(PickerMode::SaveAs, then);
@@ -158,7 +159,7 @@ impl AsciiUi {
                     self.proceed(buf, pending);
                 }
             }
-            Err(message) => self.show_notice("erro ao salvar" + &message),
+            Err(message) => self.show_notice("Erro ao salvar", &message),
         }
     }
 
@@ -170,18 +171,16 @@ impl AsciiUi {
         Ok(())
     }
 
-    // Lê o path para dentro do editor. Se falhar , o documento atual fica intacto
+    /// Lê `path` para dentro do editor. Se falhar, o documento atual fica intacto.
     fn load_into(&mut self, buf: &mut Buffer, path: PathBuf) -> Result<(), String> {
-
         let loaded = files::load(&path)?;
         let label = files::file_label(&path);
         let file = FileState {
-
             path: Some(path),
             format: loaded.format,
         };
         self.replace_document(buf, &loaded.text, file);
-        let mut message = format!("Alberto: {label}");
+        let mut message = format!("Aberto: {label}");
         if loaded.tabs {
             message.push_str(" (tabs convertidos em 4 espaços)");
         }
@@ -189,9 +188,8 @@ impl AsciiUi {
         Ok(())
     }
 
-    // Abre o path ao iniciar (argumento de linha de comando). Se o arquivo não existe
-    // começa com um documento vazio com esse nome, como 'nano novo.txt'
-
+    /// Abre `path` ao iniciar (argumento de linha de comando). Se o arquivo não existe,
+    /// começa um documento vazio com esse nome, como `nano novo.txt`.
     pub fn open_initial(&mut self, buf: &mut Buffer, path: PathBuf) {
         let path = files::absolute(&path);
         if !path.exists() {
@@ -206,11 +204,11 @@ impl AsciiUi {
             self.notify(format!("Erro ao abrir: {message}"));
         }
     }
- 
+
     fn notify(&mut self, text: String) {
         self.message = Some((text, self.now + 5.0));
     }
- 
+
     fn show_notice(&mut self, title: &str, message: &str) {
         self.modal = Modal::Ask {
             dlg: MsgBox::notice(title, message),
@@ -218,7 +216,8 @@ impl AsciiUi {
         };
     }
 
-    // -------------------------- respostas
+    // ------------------------------------------------------------ respostas
+
     fn picker_outcome(
         &mut self,
         buf: &mut Buffer,
@@ -233,9 +232,8 @@ impl AsciiUi {
         }
     }
 
-    // A pessoa escolheu `path` no seletor. Erros ficam dentro do seletor, para ela
-    // poder tentar outro arquivo sem recomeçar.
-
+    /// A pessoa escolheu `path` no seletor. Erros ficam dentro do seletor, para ela
+    /// poder tentar outro arquivo sem recomeçar.
     fn picker_chosen(
         &mut self,
         buf: &mut Buffer,
@@ -247,16 +245,16 @@ impl AsciiUi {
             PickerMode::Open => {
                 if let Err(message) = self.load_into(buf, path) {
                     picker.set_error(message);
-                    self.modal = Modal::Picker { picker, then};
+                    self.modal = Modal::Picker { picker, then };
                 }
             }
             PickerMode::SaveAs => {
                 let same_file = self.file.path.as_deref() == Some(path.as_path());
                 if path.exists() && !same_file {
-                    let dlg = MsgBox::overwriter(&files::file_label(&path));
+                    let dlg = MsgBox::overwrite(&files::file_label(&path));
                     self.modal = Modal::Ask {
                         dlg,
-                        ask: Ask::Overwriter {picker, path, then},
+                        ask: Ask::Overwrite { picker, path, then },
                     };
                 } else {
                     match self.try_save(buf, &path) {
@@ -267,7 +265,7 @@ impl AsciiUi {
                         }
                         Err(message) => {
                             picker.set_error(message);
-                            self.modal = Modal::Picker {picker, then};
+                            self.modal = Modal::Picker { picker, then };
                         }
                     }
                 }
@@ -275,19 +273,18 @@ impl AsciiUi {
         }
     }
 
-    // Um botão de uma caixa de mensagem foi adicionado
-
+    /// Um botão de uma caixa de mensagem foi acionado.
     fn ask_pressed(&mut self, buf: &mut Buffer, ask: Ask, button: usize) {
         match ask {
             Ask::Notice => {}
-            // 0 = salvar , 1 = descartar , 2 = cancelar
+            // 0 = Salvar, 1 = Descartar, 2 = Cancelar
             Ask::Unsaved(pending) => match button {
                 0 => self.save(buf, Some(pending)),
-                1 => self.proceed(buf,  pending),
+                1 => self.proceed(buf, pending),
                 _ => {}
             },
-            // 0 = Sim , 1 = nao
-            Ask::Overwriter {
+            // 0 = Sim, 1 = Não
+            Ask::Overwrite {
                 mut picker,
                 path,
                 then,
@@ -301,28 +298,28 @@ impl AsciiUi {
                         }
                         Err(message) => {
                             picker.set_error(message);
-                            self.modal = Modal::Picker { picker, then};
+                            self.modal = Modal::Picker { picker, then };
                         }
                     }
                 } else {
-                    self.modal = Modal::Picker {picker, then};
+                    self.modal = Modal::Picker { picker, then };
                 }
             }
         }
     }
 
-    // ----------------------------------------- Entrada
+    // ------------------------------------------------------------------ entrada
 
-    // Teclado com um diálogo aberto 'ctrl' = ctrl/Cmd 'shift' = shift
+    /// Teclado com um diálogo aberto. `ctrl` = Ctrl/Cmd; `shift` = Shift.
     pub(super) fn modal_key(
-        &mut self, 
+        &mut self,
         buf: &mut Buffer,
         key: Key,
         ctrl: bool,
         shift: bool,
         layout: &Layout,
     ) {
-        // O dialogo sai do estado enquanto é tratado e só volta se continuar aberto
+        // O diálogo sai do estado enquanto é tratado e só volta se continuar aberto.
         match std::mem::replace(&mut self.modal, Modal::None) {
             Modal::None => {}
             Modal::About => {
@@ -330,34 +327,34 @@ impl AsciiUi {
                     self.modal = Modal::About;
                 }
             }
-            Modal::Picker {mut picker, then} => {
+            Modal::Picker { mut picker, then } => {
                 let lay = PickerLayout::new(layout.cols, layout.rows);
                 let outcome = picker.key(key, ctrl, lay.items.h);
                 self.picker_outcome(buf, picker, then, outcome);
             }
-            Modal::Ask {mut dlg, ask} => match dlg.key(key, shift){
+            Modal::Ask { mut dlg, ask } => match dlg.key(key, shift) {
                 Some(button) => self.ask_pressed(buf, ask, button),
-                None => self.modal = Modal::Ask {dlg, ask},
+                None => self.modal = Modal::Ask { dlg, ask },
             },
         }
     }
 
-    // Texto digitado, só o seletor "Campo nome" o aceita
+    /// Texto digitado: só o seletor (campo "Nome:") o aceita.
     pub(super) fn modal_text(&mut self, text: &str) {
-        if let Modal::Picker {picker,..} = &mut self.modal{
+        if let Modal::Picker { picker, .. } = &mut self.modal {
             picker.insert_text(text);
         }
     }
 
-    // Roda do mouse sobre o seletor: Rola a lista
+    /// Roda do mouse sobre o seletor: rola a lista.
     pub(super) fn picker_wheel(&mut self, lines: isize, layout: &Layout) {
-        if let Modal::Picker { picker, ..} =  &mut self.modal {
+        if let Modal::Picker { picker, .. } = &mut self.modal {
             let visible = PickerLayout::new(layout.cols, layout.rows).items.h;
             picker.scroll_by(lines, visible);
         }
     }
 
-    // Mouse com o dialogo aberto
+    /// Mouse com um diálogo aberto.
     pub(super) fn modal_pointer(&mut self, buf: &mut Buffer, ptr: Pointer, layout: &Layout) {
         match std::mem::replace(&mut self.modal, Modal::None) {
             Modal::None => {}
@@ -388,25 +385,22 @@ impl AsciiUi {
         }
     }
 
-    // Parei na função fn picker_pointer() na linha 388 do
     fn picker_pointer(
-
         &mut self,
         picker: &mut Picker,
         ptr: Pointer,
         layout: &Layout,
-
     ) -> PickerOutcome {
         let lay = PickerLayout::new(layout.cols, layout.rows);
         let visible = lay.items.h;
 
-        // Arrastar o polegar da barra de rolagem da lista
-        if ptr.drag_starterd {
+        // Arrastar o polegar da barra de rolagem da lista.
+        if ptr.drag_started {
             if let Some((cx, cy)) = ptr.origin {
                 if picker.hit(&lay, cx, cy) == PickerHit::Bar(BarHit::Thumb) {
                     let bar = picker.bar(&lay);
                     let grab = bar.track_offset(cx, cy) - bar.thumb().0 as isize;
-                    self.drag = Drag::PickeThumb {grab};
+                    self.drag = Drag::PickerThumb { grab };
                 }
             }
         }
@@ -418,7 +412,7 @@ impl AsciiUi {
         }
 
         match ptr.cell {
-            Some ((cx, cy)) if ptr.double || ptr.clicked => {
+            Some((cx, cy)) if ptr.double || ptr.clicked => {
                 let hit = picker.hit(&lay, cx, cy);
                 picker.click(hit, ptr.double, &lay)
             }
@@ -426,20 +420,19 @@ impl AsciiUi {
         }
     }
 
-    // ------------------------------------------ Desenho
-    // Desenha o dialogo aberto (se houver) por cima de todo o resto
+    // ------------------------------------------------------------------ desenho
 
+    /// Desenha o diálogo aberto (se houver) por cima de todo o resto.
     pub(super) fn draw_modal(&self, s: &mut Screen, look: &Look, layout: &Layout, caret_on: bool) {
         let (p, g) = (&look.p, &look.g);
-        
         match &self.modal {
             Modal::None => {}
             Modal::About => self.draw_about(s, look, layout),
-            Modal::Picker { picker, ..} => {
+            Modal::Picker { picker, .. } => {
                 let lay = PickerLayout::new(layout.cols, layout.rows);
                 picker.draw(s, p, g, &lay, caret_on);
             }
-            Modal::Ask {dlg, ..} => {
+            Modal::Ask { dlg, .. } => {
                 let lay = dlg.layout(layout.cols, layout.rows);
                 dlg.draw(s, p, g, &lay);
             }
@@ -447,23 +440,21 @@ impl AsciiUi {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
 
     fn scratch(name: &str) -> PathBuf {
-
-        let dir =   
-            std::env::temp_dir().join(format!("Beaver-Ide-{}-{}", std::process::id(), name));
+        let dir =
+            std::env::temp_dir().join(format!("mini-edit-flow-{}-{}", std::process::id(), name));
         let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrape();
+        fs::create_dir_all(&dir).unwrap();
         dir
     }
 
     fn layout() -> Layout {
-        Layout::new(106,34, 10, true)
+        Layout::new(106, 34, 10, true)
     }
 
     fn named(path: PathBuf) -> FileState {
@@ -483,7 +474,6 @@ mod tests {
         buf.insert("olá");
         assert!(buf.is_dirty());
 
-
         ui.file_cmd(&mut buf, Cmd::Save);
         assert_eq!(fs::read_to_string(&path).unwrap(), "olá");
         assert!(!buf.is_dirty());
@@ -494,9 +484,8 @@ mod tests {
 
     #[test]
     fn new_while_dirty_asks_first_and_discard_resets() {
-
         let mut ui = AsciiUi::new();
-        let mut buff = Buffer::new("texto");
+        let mut buf = Buffer::new("texto");
         buf.insert("x");
         ui.file_cmd(&mut buf, Cmd::New);
         assert!(matches!(
@@ -507,7 +496,7 @@ mod tests {
             }
         ));
 
-        // A seta para a direita seleciona "Descartar": Enter Confirmar
+        // a seta para a direita seleciona "Descartar"; Enter confirma
         ui.modal_key(&mut buf, Key::ArrowRight, false, false, &layout());
         ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
         assert!(matches!(ui.modal, Modal::None));
@@ -515,9 +504,229 @@ mod tests {
         assert!(!buf.is_dirty());
     }
 
-    // Parei aqui, correspondente a linha 507 do claude
     #[test]
     fn cancelling_keeps_the_document() {
+        let mut ui = AsciiUi::new();
+        let mut buf = Buffer::new("texto");
+        buf.insert("x");
+        ui.file_cmd(&mut buf, Cmd::New);
+        ui.modal_key(&mut buf, Key::Escape, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::None));
+        assert_eq!(buf.text(), "xtexto");
+        assert!(buf.is_dirty());
+    }
 
+    #[test]
+    fn clean_documents_skip_the_question() {
+        let mut ui = AsciiUi::new();
+        let mut buf = Buffer::new("texto");
+        ui.file_cmd(&mut buf, Cmd::New);
+        assert!(matches!(ui.modal, Modal::None));
+        assert_eq!(buf.text(), "");
+    }
+
+    #[test]
+    fn open_flow_loads_a_file_through_the_picker() {
+        let dir = scratch("open");
+        fs::write(dir.join("a.txt"), "um\r\ndois\ttab").unwrap();
+        let mut ui = AsciiUi::new();
+        ui.file = named(dir.join("zzz.txt")); // faz o seletor começar em `dir`
+        let mut buf = Buffer::new("");
+
+        ui.file_cmd(&mut buf, Cmd::Open);
+        assert!(matches!(ui.modal, Modal::Picker { .. }));
+
+        ui.modal_text("a.txt");
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::None));
+        assert_eq!(buf.text(), "um\ndois    tab"); // CRLF -> LF e tab -> 4 espaços
+        assert!(!buf.is_dirty());
+        assert_eq!(ui.file.path.as_deref(), Some(dir.join("a.txt").as_path()));
+        assert!(ui.file.format.crlf);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn open_errors_stay_inside_the_picker() {
+        let dir = scratch("openerr");
+        fs::write(dir.join("bin.dat"), [0u8, 1, 2]).unwrap();
+        let mut ui = AsciiUi::new();
+        ui.file = named(dir.join("x"));
+        let mut buf = Buffer::new("intacto");
+
+        ui.file_cmd(&mut buf, Cmd::Open);
+        ui.modal_text("bin.dat");
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert_eq!(buf.text(), "intacto"); // o documento atual não foi tocado
+        assert!(matches!(
+            ui.modal,
+            Modal::Picker { ref picker, .. }
+                if picker.error().is_some_and(|e| e.contains("binário"))
+        ));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_as_asks_before_overwriting() {
+        let dir = scratch("overwrite");
+        let target = dir.join("x.txt");
+        fs::write(&target, "velho").unwrap();
+        let mut ui = AsciiUi::new();
+        ui.file = named(dir.join("y.txt"));
+        let mut buf = Buffer::new("novo");
+
+        ui.file_cmd(&mut buf, Cmd::SaveAs);
+        ui.modal_text("x.txt"); // o campo vinha com "y.txt": digitar substitui
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert!(matches!(
+            ui.modal,
+            Modal::Ask {
+                ask: Ask::Overwrite { .. },
+                ..
+            }
+        ));
+
+        // "Não" é o botão padrão: volta ao seletor sem gravar
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::Picker { .. }));
+        assert_eq!(fs::read_to_string(&target).unwrap(), "velho");
+
+        // de novo, agora com o atalho "S" (Sim)
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::Ask { .. }));
+        ui.modal_key(&mut buf, Key::S, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::None));
+        assert_eq!(fs::read_to_string(&target).unwrap(), "novo");
+        assert_eq!(ui.file.path.as_deref(), Some(target.as_path()));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn quit_with_unsaved_changes_saves_then_quits() {
+        let dir = scratch("quit");
+        let mut ui = AsciiUi::new();
+        ui.file = named(dir.join("q.txt"));
+        let mut buf = Buffer::new("");
+        buf.insert("dados");
+
+        ui.file_cmd(&mut buf, Cmd::Quit);
+        assert!(!ui.want_close);
+        assert!(matches!(ui.modal, Modal::Ask { .. }));
+
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout()); // "Salvar" é o padrão
+        assert_eq!(fs::read_to_string(dir.join("q.txt")).unwrap(), "dados");
+        assert!(ui.want_close);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn quit_with_discard_does_not_write_anything() {
+        let dir = scratch("discard");
+        let mut ui = AsciiUi::new();
+        ui.file = named(dir.join("q.txt"));
+        let mut buf = Buffer::new("");
+        buf.insert("dados");
+
+        ui.file_cmd(&mut buf, Cmd::Quit);
+        ui.modal_key(&mut buf, Key::D, false, false, &layout()); // atalho de "Descartar"
+        assert!(ui.want_close);
+        assert!(!dir.join("q.txt").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_untitled_save_opens_the_save_as_dialog() {
+        let mut ui = AsciiUi::new();
+        let mut buf = Buffer::new("");
+        buf.insert("x");
+        ui.file_cmd(&mut buf, Cmd::Save);
+        assert!(matches!(
+            ui.modal,
+            Modal::Picker { ref picker, .. } if picker.mode() == PickerMode::SaveAs
+        ));
+    }
+
+    #[test]
+    fn saving_over_a_missing_folder_shows_a_notice() {
+        let dir = scratch("badsave");
+        let mut ui = AsciiUi::new();
+        ui.file = named(dir.join("pasta-inexistente").join("a.txt"));
+        let mut buf = Buffer::new("");
+        buf.insert("x");
+        ui.file_cmd(&mut buf, Cmd::Save);
+        assert!(matches!(
+            ui.modal,
+            Modal::Ask {
+                ask: Ask::Notice,
+                ..
+            }
+        ));
+        assert!(buf.is_dirty()); // nada foi salvo
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::None));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_file_given_at_startup_is_opened_or_created() {
+        let dir = scratch("initial");
+        let existing = dir.join("a.txt");
+        fs::write(&existing, "oi\n").unwrap();
+
+        let mut ui = AsciiUi::new();
+        let mut buf = Buffer::new("antes");
+        ui.open_initial(&mut buf, existing.clone());
+        assert_eq!(buf.text(), "oi\n");
+        assert_eq!(ui.file.path.as_deref(), Some(existing.as_path()));
+
+        let new_file = dir.join("novo.txt");
+        let mut ui = AsciiUi::new();
+        ui.open_initial(&mut buf, new_file.clone());
+        assert_eq!(buf.text(), "");
+        assert_eq!(ui.file.path.as_deref(), Some(new_file.as_path()));
+        assert!(!new_file.exists()); // só é criado ao salvar
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_about_dialog_only_closes_with_its_keys() {
+        let mut ui = AsciiUi::new();
+        let mut buf = Buffer::new("");
+        ui.modal = Modal::About;
+        ui.modal_key(&mut buf, Key::A, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::About));
+        ui.modal_key(&mut buf, Key::Escape, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::None));
+    }
+
+    #[test]
+    fn clicking_buttons_works_in_the_about_and_question_dialogs() {
+        let lay = layout();
+        let click = |x: usize, y: usize| Pointer {
+            cell: Some((x as isize, y as isize)),
+            clicked: true,
+            ..Pointer::default()
+        };
+
+        let mut ui = AsciiUi::new();
+        let mut buf = Buffer::new("");
+        ui.modal = Modal::About;
+        ui.modal_pointer(&mut buf, click(0, 0), &lay); // fora do botão: continua aberto
+        assert!(matches!(ui.modal, Modal::About));
+        let ok = lay.about_ok();
+        ui.modal_pointer(&mut buf, click(ok.x + 1, ok.y), &lay);
+        assert!(matches!(ui.modal, Modal::None));
+
+        // pergunta "alterações não salvas": clicar em "Descartar" (2º botão)
+        let mut buf = Buffer::new("a");
+        buf.insert("b");
+        ui.file_cmd(&mut buf, Cmd::New);
+        let discard = match &ui.modal {
+            Modal::Ask { dlg, .. } => dlg.layout(lay.cols, lay.rows).buttons[1],
+            _ => panic!("era para haver uma pergunta aberta"),
+        };
+        ui.modal_pointer(&mut buf, click(discard.x + 2, discard.y), &lay);
+        assert!(matches!(ui.modal, Modal::None));
+        assert_eq!(buf.text(), "");
     }
 }
