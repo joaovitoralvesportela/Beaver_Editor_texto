@@ -388,6 +388,136 @@ impl AsciiUi {
         }
     }
 
-    // Parei na função fn picker_pointer() na linha 388 do claude
+    // Parei na função fn picker_pointer() na linha 388 do
+    fn picker_pointer(
 
+        &mut self,
+        picker: &mut Picker,
+        ptr: Pointer,
+        layout: &Layout,
+
+    ) -> PickerOutcome {
+        let lay = PickerLayout::new(layout.cols, layout.rows);
+        let visible = lay.items.h;
+
+        // Arrastar o polegar da barra de rolagem da lista
+        if ptr.drag_starterd {
+            if let Some((cx, cy)) = ptr.origin {
+                if picker.hit(&lay, cx, cy) == PickerHit::Bar(BarHit::Thumb) {
+                    let bar = picker.bar(&lay);
+                    let grab = bar.track_offset(cx, cy) - bar.thumb().0 as isize;
+                    self.drag = Drag::PickeThumb {grab};
+                }
+            }
+        }
+        if ptr.dragged {
+            if let (Drag::PickerThumb { grab }, Some((cx, cy))) = (self.drag, ptr.cell) {
+                let bar = picker.bar(&lay);
+                picker.set_scroll(bar.pos_for_thumb(bar.track_offset(cx, cy) - grab), visible);
+            }
+        }
+
+        match ptr.cell {
+            Some ((cx, cy)) if ptr.double || ptr.clicked => {
+                let hit = picker.hit(&lay, cx, cy);
+                picker.click(hit, ptr.double, &lay)
+            }
+            _ => PickerOutcome::Stay,
+        }
+    }
+
+    // ------------------------------------------ Desenho
+    // Desenha o dialogo aberto (se houver) por cima de todo o resto
+
+    pub(super) fn draw_modal(&self, s: &mut Screen, look: &Look, layout: &Layout, caret_on: bool) {
+        let (p, g) = (&look.p, &look.g);
+        
+        match &self.modal {
+            Modal::None => {}
+            Modal::About => self.draw_about(s, look, layout),
+            Modal::Picker { picker, ..} => {
+                let lay = PickerLayout::new(layout.cols, layout.rows);
+                picker.draw(s, p, g, &lay, caret_on);
+            }
+            Modal::Ask {dlg, ..} => {
+                let lay = dlg.layout(layout.cols, layout.rows);
+                dlg.draw(s, p, g, &lay);
+            }
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn scratch(name: &str) -> PathBuf {
+
+        let dir =   
+            std::env::temp_dir().join(format!("Beaver-Ide-{}-{}", std::process::id(), name));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrape();
+        dir
+    }
+
+    fn layout() -> Layout {
+        Layout::new(106,34, 10, true)
+    }
+
+    fn named(path: PathBuf) -> FileState {
+        FileState {
+            path: Some(path),
+            format: FileFormat::default(),
+        }
+    }
+
+    #[test]
+    fn saving_with_a_path_writes_the_file_and_clears_the_dirty_flag() {
+        let dir = scratch("save");
+        let path = dir.join("nota.txt");
+        let mut ui = AsciiUi::new();
+        ui.file = named(path.clone());
+        let mut buf = Buffer::new("");
+        buf.insert("olá");
+        assert!(buf.is_dirty());
+
+
+        ui.file_cmd(&mut buf, Cmd::Save);
+        assert_eq!(fs::read_to_string(&path).unwrap(), "olá");
+        assert!(!buf.is_dirty());
+        assert!(matches!(ui.modal, Modal::None));
+        assert!(ui.message.is_some());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn new_while_dirty_asks_first_and_discard_resets() {
+
+        let mut ui = AsciiUi::new();
+        let mut buff = Buffer::new("texto");
+        buf.insert("x");
+        ui.file_cmd(&mut buf, Cmd::New);
+        assert!(matches!(
+            ui.modal,
+            Modal::Ask {
+                ask: Ask::Unsaved(Pending::New),
+                ..
+            }
+        ));
+
+        // A seta para a direita seleciona "Descartar": Enter Confirmar
+        ui.modal_key(&mut buf, Key::ArrowRight, false, false, &layout());
+        ui.modal_key(&mut buf, Key::Enter, false, false, &layout());
+        assert!(matches!(ui.modal, Modal::None));
+        assert_eq!(buf.text(), "");
+        assert!(!buf.is_dirty());
+    }
+
+    // Parei aqui, correspondente a linha 507 do claude
+    #[test]
+    fn cancelling_keeps_the_document() {
+
+    }
 }
