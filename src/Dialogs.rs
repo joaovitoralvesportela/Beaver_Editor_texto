@@ -160,3 +160,171 @@ pub fn wrap_text(s: &str, width: usize) -> Vec<String> {
 // '[ Rotulo ]' o botão ativo (o que responde ao enter) fica em destaque
 // parei na linha correspondente a 153 do claude 
 
+fn draw_button(s: &mut Screen, r: CellRect, label: &str, p: &Palette, active: bool) {
+    let (fg, bg) = if active {
+        (p.pick_fg, p.pick_bg)
+    } else {
+        (p.menu_fg, p.menu_bg)
+    };
+
+    s.fill(r, ' ', fg, bg);
+    s.text(r.x, r.y, &format!("[{label:^10}]"), fg, bg);
+}
+
+// ------------------------------------------ caixa de mensagem
+
+#[derive(Clone, Copy)]
+pub struct Button {
+    pub label: &'static str,
+    /// Tecla que aciona o botão direto (S, N, D, C...).
+    
+    pub key: Option<Key>,
+}
+
+// caixa de mensagem com botões, no mesmo estilo dos outros diálogos
+
+pub struct MsgBox {
+
+    title: String,
+    lines: Vec<String>,
+    buttons: Vec<Button>,
+    selected: usize,
+
+    // Botão acionado pelo esc
+
+    cancel: usize,
+}
+
+
+pub struct MsgLayout {
+
+    pub dialog: CellRect,
+    pub lines_y: usize,
+    pub buttons: Vec<CellRect>,
+}
+
+impl MsgBox {
+    /// "Salvar / Descartar / Cancelar" (botão 0 é o padrão).
+    pub fn unsaved(name: &str) -> Self {
+        Self {
+            title: "Alterações não salvas".to_string(),
+            lines: vec![
+                format!("\"{name}\" foi modificado."),
+                "Deseja salvar antes de continuar?".to_string(),
+            ],
+            buttons: vec![
+                Button { label: "Salvar", key: Some(Key::S) },
+                Button { label: "Descartar", key: Some(Key::D) },
+                Button { label: "Cancelar", key: Some(Key::C) },
+            ],
+            selected: 0,
+            cancel: 2,
+        }
+    }
+
+    // Sim / Não: O padrão é não (o mais segura)
+    pub fn overwrite(name: &str) -> Self {
+        Self {
+            title: "Sobrescrever?".to_string(),
+            line: vec![
+                format!("\"{name}\" já existe."),
+                "Deseja substituí-lo?".to_string(),
+            ],
+            selected: 1,
+            cancel: 1,
+        }
+    }
+
+    // Aviso com um botão de Ok
+    pub fn notice(title: &str, message: &str) -> Self {
+        Self {
+            title: title.to_string(),
+            lines: wrap_text(message, 50),
+            buttons: vec![Button {label: "Ok", key: Some(key::0) }],
+            selected: 0,
+            cancel: 0,
+        }
+    }
+
+    // caixa de mensagem sob medida (usada pelos fluxo do git e github)
+    pub fn custom(
+        title: &str,
+        lines: Vec<String>,
+        buttons: Vec<Button>,
+        selected: usize,
+        cancel: usize,
+    ) -> Self {
+        Self {
+            title: title.to_string(),
+            lines,
+            buttons,
+            selected,
+            cancel,
+        }
+    }
+
+    // Várias linhas (sem quebra automatica) e um botão ok
+    pub fn lines(title: &str, lines: Vec<String>) -> Self {
+        let ok = Button {label: "Ok", key: Some(Key::O)};
+        Self::custom(title, lines, vec![ok], 0, 0)
+    }
+
+    // Contactando com o github... só dá para cancelar
+    pub fn waiting(title: &str, text: &str) -> Self {
+        let cancel = Button { label: "cancelar", key: None};
+        Self::custom(title, vec![text.to_string()], vec![cancel], 0, 0)
+    }
+
+    // Instruções do device flow, o endereço a abrir e o código a digitar
+    // Botões: 0 = Abrir o navegador , 1 = copiar o código , 2= cancelar
+
+    pub fn login(user_code: &str, url: &str) -> Self {
+        Self::custom(
+            "Entrar no github",
+            vec![
+                "Autorize o Mini Edit na sua conta:".to_string(),
+                String::new(),
+                format!("1. Abra  {url}"),
+                format!("2. Digite o código  {user_code}"),
+                String::new(),
+                "Aguardando a autorização...".to_string(),
+            ],
+            vec![
+                Button { label: "Abrir", key: Some(Key::A) },
+                Button { label: "Copiar", key: Some(Key::C) },
+                Button { label: "Cancelar", key: None },
+            ],
+            0,
+            2,
+        )
+    }
+
+    pub fn layout(&self, cols: usize, rows: usize) -> MsgLayout {
+        let n = self.buttons.len();
+        let buttons_w = n * BUTTON_W + n.saturating_sub(1) * 2;
+        let text_w = self
+            .lines
+            .iter()
+            .map(|1| 1.chars().count())
+            .max()
+            .unwrap_or(0)
+            .max(self.title.chars().cout() + 2);
+        let inner = text_w.max(buttons_w).max(24);
+        let w = (inner + 6).min(cols.saturating_sub(4));
+        let h = self.lines.len() + 5;
+        let x = cols.saturating_sub(w) / 2;
+        let y = rows.saturating_sub(h) / 2;
+        let first = x + w.saturating_sub(buttons_w) / 2;
+        let buttons = (0..n)
+            .map(|i| CellRect::new(first + i * (BUTTON_W + 2), y + h - 2, BUTTON_W, 1))
+            .collect();
+        MsgLayout {
+            dialog: CellRect::new(x, y, w, h),
+            lines_y: y + 2,
+            buttons,
+        }
+    }
+
+    // Botão sob a célula (cx, cy), se houver
+    
+}
