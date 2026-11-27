@@ -326,5 +326,126 @@ impl MsgBox {
     }
 
     // Botão sob a célula (cx, cy), se houver
-    
+    pub fn hit(&self, lay: &MsgLayout, cx: isize, cy: isize) -> Option<usize> {
+        lay.buttons.iter().position(|r| r.contains(cx, cy))
+    }
+
+    // Trata uma tecla. Devolve o botão acionado, se for o caso.
+
+    pub fn key(&mut self, key: Key, shift: bool) -> Option<usize> {
+        let n = self.buttons.len();
+        let prev = (self.selected + n - 1) % n;
+        let next = (self.selected + 1) % n;
+        match key {
+            Key::Enter | Key::Space => return Some(self.selected),
+            Key::Escape => return Some(self.cancel),
+            Key::ArrowLeft | Key::ArrowUp => self.selected = prev,
+            Key::ArrowRight | Key::ArrowDown => self.selected = next,
+            Key::Tab => self.selected = if shift { prev } else { next },
+            _ => {
+                if let Some(i) = self.buttons.iter().position(|b| b.key == Some(key)) {
+                    return Some(i);
+                }
+            }
+        }
+        None
+    }
+
+    pub fn draw(&self , s: &mut Screen, p: &Palette, g: &Glyphs, lay: &MsgLayout) {
+        let d = lay.dialog;
+        s.shadow(d, p.shadow_fg , p.shadow_bg);
+        s.fill(d, ' ', p.menu_fg, p.menu_bg);
+        s.frame(d, g, true, p.menu_fg, p.menu_bg);
+        s.text_centered(d, d.y, &format!(" {} ", self.title), p.hot, p.menu_bg);
+        for (i, line) in self.lines.iter().enumerate() {
+            let text = ellipsize_end(line, d.w.saturating_sub(6));
+            s.text_centered(d, lay.line_y + i, &text, p.menu_fg, p.menu_bg);
+        }
+
+        for (i, (button, rect)) in self.buttons.iter().zip(&lay.buttons).enumerate(){
+            draw_buttons(s, *rect, button.label, p, i == self.selected);
+        }
+    }
+}
+
+// ------------------------------------------------------ pergunta de uma linha 
+
+// o que aconteceu depois de uma ação na pergunta
+
+#[derive(Debug, Partialeq, Eq)]
+pub enum PromptOutcome{
+    Stay,
+    Cancel,
+    // texto confirmado (sem espaços nas pontas e nunca vazios)
+    Submit(String),
+}
+
+#[deriv(Clone, Copy, Debug, Partialeq, Eq)]
+pub enum PromptHit {
+    // Coluna dentro do campo
+    Field(usize),
+    Ok,
+    Cancel,
+    Nothing,
+}
+
+#[derive(Clone, Copy, Debug, Partialeq, Eq)]
+pub struct PromptLayout {
+    pub dialog: CellRect,
+    pub label: CellRect,
+    pub field: CellRect,
+    pub msg_line: CellRect,
+    pub ok: CellRect,
+    pub cancel: CellRect,
+}
+
+impl PromptLayout {
+    // exige 'cols >= 64' e 'rows >= 20' (quem chama garante)
+    pub fn new(cols: usize, rows: usize) -> Self {
+        let w = (cols - 4).min(64);
+        let h = 8;
+        let x = (cols - w) / 2;
+        let y = (rows - h) / 2;
+        let total = BUTTON_W * 2 + 3;
+        let bx = x + (w - total) / 2;
+        Self {
+            dialog: CellRect::new(x, y, w, h),
+            label: CellRect::new(x + 2, y + 2, w - 4, 1),
+            field: CellRect::new(x + 2, y + 3, w - 4, 1),
+            msg_line: CellRect::new(x + 2, y + 4, w - 4, 1),
+            ok: CellRect::new(bx, y + 6, BUTTON_W, 1),
+            cancel: CellRect::new(bx + BUTTON_W + 3, y + 6, BUTTON_W, 1),
+        }
+    }
+}
+
+// Dialogo com um campo de texto (mensagem do commit, e depois "ir para a linha", buscar...)
+
+pub struct Prompt {
+    title: String,
+    label: String,
+    ok_label: &'static str,
+    edit: LineEdit,
+
+    // O texto inicial ainda não foi tocado: a próxima digitação o substitui
+    fresh: bool,
+    error: Option<String>,
+}
+
+impl Prompt {
+    pub fn new(title: &str, label: &str, ok_label: &'static str, initial: &str) -> Self {
+        Self {
+            title: title.to_string(),
+            label: label.to_string(),
+            ok_label,
+            edit: LineEdit::new(initial),
+            fresh: !initial.is_empty(),
+            error: None,
+        }
+    }
+
+    // Parei aqui o que corresponde a linha 429 do claude
+    pub fn insert_text(&mut self, text: &str) {
+
+    }
 }
