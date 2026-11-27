@@ -23,6 +23,7 @@ F3 -> Bordas ascii/unicode
 
 
 // DECLARANDO MODULOS PARA ORGANIZAR O CÓDIGO EM NAMESPACES E CONRTOLAR O ESCOPO E A PRIVACIDADE DOS ITENS
+
 mod banner;
 mod buffer;
 mod dialogs;
